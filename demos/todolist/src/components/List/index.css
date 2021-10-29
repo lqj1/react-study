@@ -4,8 +4,6 @@
   border: 1px solid #ddd;
   border-radius: 2px;
   padding: 0px;
-  display: flex;
-  flex-direction: column;
 }
 
 .todo-empty {
