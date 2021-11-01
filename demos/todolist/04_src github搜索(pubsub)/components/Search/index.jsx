@@ -7,8 +7,7 @@ export default class Search extends Component {
     const {
       keywordElement: { value: keyword },
     } = this;
-    //#region 发送网络请求，使用axios发送
-    /*
+    // console.log(keyword);
     // 发送请求前通知App更新状态
     // this.props.updateAppState({ isFirst: false, isLoading: true });
     PubSub.publish('submesg', { isFirst: false, isLoading: true });
@@ -27,9 +26,6 @@ export default class Search extends Component {
         PubSub.publish('submesg', { isLoading: false, err: error });
       }
     );
-    */
-    //#endregion
-    // 发送网络请求--使用fetch发送
   };
   render() {
     return (

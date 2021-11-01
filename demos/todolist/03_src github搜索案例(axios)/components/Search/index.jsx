@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import PubSub from 'pubsub-js';
 import axios from 'axios';
 export default class Search extends Component {
   search = () => {
@@ -7,29 +6,21 @@ export default class Search extends Component {
     const {
       keywordElement: { value: keyword },
     } = this;
-    //#region 发送网络请求，使用axios发送
-    /*
+    // console.log(keyword);
     // 发送请求前通知App更新状态
-    // this.props.updateAppState({ isFirst: false, isLoading: true });
-    PubSub.publish('submesg', { isFirst: false, isLoading: true });
-    // 发送请求前通知List更新状态
+    this.props.updateAppState({ isFirst: false, isLoading: true });
     // 发送网络请求
     // axios.get(`http://localhost:3000/api1/search/users?q=${keyword}`).then(
     axios.get(`api1/search/users?q=${keyword}`).then(
       response => {
         console.log('成功了', response.data);
-        // this.props.updateAppState({ isLoading: false, users: response.data.items });
-        PubSub.publish('submesg', { isLoading: false, users: response.data.items });
+        this.props.updateAppState({ isLoading: false, users: response.data.items });
       },
       error => {
         console.log('失败了', error);
-        // this.props.updateAppState({ isLoading: false, err: error });
-        PubSub.publish('submesg', { isLoading: false, err: error });
+        this.props.updateAppState({ isLoading: false, err: error });
       }
     );
-    */
-    //#endregion
-    // 发送网络请求--使用fetch发送
   };
   render() {
     return (
