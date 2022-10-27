@@ -1777,3 +1777,13 @@ export default observer(App)
 4. 如何实现 mobx 的模块化？
 - 按照功能拆分store模块，根据模块中组合子模块，利用 context 机制依赖注入
 
+### pc项目笔记
+- 技术
+  - React官方脚手架 create-react-app
+  - react hooks
+  - 状态管理: mobx
+  - UI组件库: antd v4 
+  - ajax请求库: axios
+  - 路由: react-router-dom 以及 history
+  - 富文本编辑器: react-quill
+  - css 预编译器: sass
