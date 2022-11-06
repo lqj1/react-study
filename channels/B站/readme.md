@@ -1777,6 +1777,7 @@ export default observer(App)
 4. 如何实现 mobx 的模块化？
 - 按照功能拆分store模块，根据模块中组合子模块，利用 context 机制依赖注入
 
+
 ### pc项目笔记
 - 技术
   - React官方脚手架 create-react-app
@@ -1787,3 +1788,509 @@ export default observer(App)
   - 路由: react-router-dom 以及 history
   - 富文本编辑器: react-quill
   - css 预编译器: sass
+#### 开始
+1. 项目初始化
+2. 配置sass环境
+
+#### 配置一级路由
+- 安装路由：yarn add react-router-dom
+- 在 pages 目录中创建两个文件夹，Login,Layout
+- 分别在两个目录中创建 index.js 文件，并创建一个简单的组件后导出
+- 在 App 组件中，导入路由组件以及两个页面组件
+- 配置 Login 和 Layout 的路由规则
+- App.js 文件中内容为
+```javascript
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Login from './pages/Login'
+import Layout from './pages/Layout'
+function App() {
+  return (
+    // 路由配置
+    <BrowserRouter>
+      <div className="App">
+        <Routes>
+          {/* 创建路由path和组件对应关系 */}
+          <Route path="/login" element={<Login />}></Route>
+          <Route path="/" element={<Layout />}></Route>
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
+export default App;
+```
+#### 组件库antd使用
+- 安装 antd 组件库，yarn add antd
+- 修改 src/App.css(也可以在index.js文件中引入)，在文件顶部引入 antd/dist/antd.css
+  - @import 'antd/dist/antd.css'(旧版本有bug)
+  - @import 'antd/dist/antd.min.css'(解决)
+- 全局导入 antd 组件库的样式
+- 导入 Button 组件
+- 在 Login 页面渲染 Button 进行测试
+
+#### craco插件配置，配置别名路径
+- 目标：配置@路径简化路径处理
+- CRA将所有工程化配置，都隐藏在了 react-scripts 包中，所以项目中看不到任何配置信息
+- 如果要修改CRA的默认配置，游有以下几种方案：
+  - 1. 通过第三方库来修改，比如 @craco/craco（推荐）
+  - 2. 通过执行 yarn eject 命令，在package中能看到，释放 react-scripts 中的所有配置到项目中（不可逆，释放后不可回）
+- 实现步骤
+  - 1.安装修改 CRA 配置的包，yarn add -D @craco/craco 
+  - 2.在项目根目录中创建craco的配置文件，craco.config.js，并在配置文件中配置路径别名
+  - 3.修改 packag.json 中的脚本命令
+  - 4. 重启项目，让配置生效
+
+
+- craco.config.js文件中内容为
+```javascript
+// 添加自定义对于webpack的配置
+const path = require('path')
+module.exports = {
+  // webpack 配置
+  webpack: {
+    // 配置别名
+    alias: {
+      // 约定，使用 @ 表示src文件所在路径
+      '@': path.resolve(__dirname, 'src ')
+    }
+  }
+}
+```
+- 修改 package.json 中的脚本命令, react-scripts 改为 craco插件配置
+
+#### @别名路径提示
+- 上述的 craco 使得 @ 表示路径生效，但是没有路径提示
+- 实现步骤 
+  - 1. 在项目根目录创建 jsconfig.json 配置文件
+  - 2. 在配置文件中添加以下配置
+```javascript
+{
+  "compilerOptions": {
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  }
+}
+```
+- vscode 会自动读取 jsconfig.json 中的配置，让vscode知道 @ 就是 src 目录
+
+#### dev-tools调试工具
+- google 浏览器安装 crx 文件
+
+#### 登录模块开发
+- react没有单文件组件，一般是一个【index.jsx/index.js】配合一个【index.scss】来组件一个组件模块
+
+#### 搭建表单Form结构
+- 1.打开 antd Form 组件文档
+- 2.找到表单相关的代码
+- 3.分析 Form 组件基本结构
+- 4.调整 Form 组件结构和样式
+
+#### 表单校验
+- 1. 为 Form 组件添加 validateTrigger 属性，指定校验触发时机的集合
+- 2. 为 Form.Item 组件添加name属性，这样表单校验才会生效
+- 3. 为 Form.Item 组件添加 rules 属性，用来添加表单校验
+- 综合之前的整个框架代码为
+```javascript
+import { Card, Form, Input, Checkbox, Button } from 'antd'
+import logo from '@/assets/logo.png'
+import './index.scss'
+// 创建函数组件
+function Login() {
+  return (
+    <div className='login'>
+      <Card className='login-container'>
+        <img className='login-logo' src={logo} alt='' />
+        {/* 登录表单 */}
+        {/* 子项用到的触发事件，需要在Form中都声明一下才可以 */}
+        <Form
+          name="basic"
+          initialValues={{
+            remember: true 
+          }}
+          validateTrigger={[
+            'onBlur',
+            'onChange' 
+          ]}
+        >
+          <Form.Item
+            name='username'
+            rules={[
+              {
+                required: true,
+                message: '请输入手机号',
+              },
+              {
+                pattern: /^1[3-9]\d{9}$/,
+                message: '请输入正确的手机号',
+                validateTrigger: 'onBlur'
+              }
+            ]}
+          >
+            <Input size="large" placeholder="请输入手机号" />
+          </Form.Item>
+          <Form.Item
+            name='passward'
+            rules={[
+              {
+                required: true,
+                message: '请输入密码',
+              },
+              {
+                len: 6,
+                message: '请输入6位密码',
+                validateTrigger: 'onBlur'
+              }
+            ]}
+          >
+            <Input size="large" placeholder="请输入验证码" />
+          </Form.Item>
+          <Form.Item
+            name='remember'
+            valuePropName='checked'
+          >
+            <Checkbox className="login-checkbox-label">
+              我已阅读并同意「用户协议」和「隐私条款」
+            </Checkbox>
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" size="large" block>
+              登录
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+    </div>
+  )
+}
+export default Login
+```
+
+#### 获取登录表单数据
+- 1. 为 Form 组件添加 onFinish 属性，该事件会在点击登录按钮时触发
+  - onFinishFailed 是对应的失败触发的事件
+- 2. 创建 onFinish 函数，通过函数参数 values 拿到表单值
+  - values是放置所有表单项中用户输入的内容
+- 3. Form 组件添加 initialValues 属性，来初始化表单值
+
+#### 登录axios统一封装处理
+- 1. 创建 utils/http.js 文件
+- 2. 创建 axios 实例，配置 baseURL，请求拦截器，响应拦截器
+- 3. 在 utils/index.js，统一导出 http
+```javascript
+// utils/http.js
+
+// 一般名称要么是 http.js，要么是 request.js
+// 封装 axios
+// 实例化 请求拦截器 响应拦截器
+import axios from 'axios'
+const http = axios.create({
+  baseURL: 'http://geek.itheima.net/v1_0',
+  timeout: 5000
+})
+// 添加请求拦截器
+http.interceptors.request.use((config) => {
+  return config
+}, (error) => {
+  return Promise.reject(error)
+})
+// 添加响应拦截器
+http.interceptors.response.use((response) => {
+  // 2xx 范围内的状态码会触发该函数
+  // 对响应数据做点什么
+  return response.data
+}, (error) => {
+  // 超出 2xx 范围的状态码都会触发该函数
+  // 对响应错误做点什么
+  return Promise.reject(error)
+})
+export { http }
+```
+```javascript
+// utils/index.js
+
+// 统一管理文件 
+// 先把所有的工具函数导出的模块在这里导入
+// 然后再统一导出
+import { http } from './http'
+export {
+  http
+}
+```
+#### 配置登录Mobx
+- 基于 mobx 封装管理用户登录的 store
+- 新增 store/login.Store.js 文件并编辑内容
+```javascript
+// store/login.Store.js 文件内容
+
+// login module 
+import { makeAutoObservable } from 'mobx'
+import { http } from '@/utils'
+class LoginStore {
+  token = ''
+  constructor() {
+    // 响应式处理
+    makeAutoObservable(this)
+  }
+  // 默认code为 246810
+  getToken = async ({ mobile, code }) => {
+    // 调用登录接口
+    const res = await http.post('http://geek.itheima.net/v1_0/authorizations', {
+      mobile, code
+    })
+    // 存入 token
+    this.token = res.data.token
+  }
+}
+export default LoginStore
+```
+```javascript
+// 把所有模块做统一处理
+// 导出一个统一的方法 useStore
+// login.Store.js
+
+import React from 'react'
+import LoginStore from './login.Store'
+class RootStore {
+  constructor() {
+    this.loginStore = new LoginStore()
+    // ....
+  }
+}
+// 实例化根
+// 导出 useStore context
+const rootStore = new RootStore()
+const context = React.createContext(rootStore)
+const useStore = () => React.useContext(context)
+export { useStore }
+```
+#### 登录后续业务处理
+- 登录的函数
+```javascript
+async function onFinish(values) {
+  console.log(values);
+  // values是放置所有表单项中用户输入的内容
+  // 登录
+  await loginStore.getToken({
+    mobile: values.username,
+    code: values.password
+  })
+  // 跳转首页
+  navigate('/', { replace: true })
+  // 提示用户
+  message.success('登录成功')
+}
+```
+#### token的持久化
+- 1. 创建 utils/token.js 文件
+- 2. 分别提供 getToken/setToken/clearToken/isAuth 四个工具函数并导出
+- 3. 创建 utils/index.js 文件, 统一导出 token.js 中所有的内容，来简化工具函数的导入
+- 4. 将登陆操作中用到 token 的地方，替换为该函数
+```javascript
+// 封装ls存储token
+const key = 'pc-key'
+
+const setToken = (token) => {
+  return window.localStorage.setItem(key, token)
+}
+const getToken = () => {
+  return window.localStorage.getItem(key)
+}
+const removeToken = () => {
+  return window.localStorage.removeItem(key)
+}
+
+export {
+  setToken,
+  getToken,
+  removeToken
+}
+```
+
+#### 请求拦截注入 token
+- 把token通过请求拦截器注入到请求头中
+  - 在请求发放之前，将token传入，一处配置，多处生效
+```javascript
+// 添加请求拦截器
+http.interceptors.request.use((config) => {
+  // if not login add token
+  const token = getToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+}, (error) => {
+  return Promise.reject(error)
+})
+```
+
+#### 路由鉴权
+- 如果用户直接输入首页，强制用户跳转到登录页
+- 1. 在 components 目录中，创建 AuthRoute/index.js 文件
+- 2. 判断是否登录
+- 3. 登录的，直接渲染相应页面组件
+- 4. 未登录时，重定向到登录页面
+- 5. 将需要鉴权的页面路由配置，替换为 AuthRoute 组件渲染
+
+- 创建鉴权的组件
+```javascript
+// .src/components/AuthComponent.js
+// 1. 判断 token 是否存在
+// 2. 如果存在，直接正常渲染
+// 3. 如果不存在，重定向到登录页
+
+// 高阶组件：把一个组件当成另外一个组件的参数传入
+// 然后通过一定的判断 返回新的组件
+import { getToken } from '@/utils'
+import { Navigate } from 'react-router-dom'
+
+// 这里参数返回是函数/组件，所以是高阶组件
+function AuthComponent ({children}) {
+  const isToken = getToken()
+  if (isToken) {
+    // 有 token 返回正常子组件渲染
+    return <>{children}</>
+  } else {
+    // 返回重定向组件
+    return <Navigate to="/login" replace />
+  }
+}
+// <AuthComponent>  <Layout /> </AuthComponent>
+// 登录：<><Layout /></>
+// 非登录：<Navigate to="/login" replace />
+export {
+  AuthComponent
+}
+```
+
+- 更改 App.js 中的路由代码
+```javascript
+<Routes>
+  {/* 创建路由path和组件对应关系 */}
+  {/* Layout 需要鉴权处理 */}
+  {/* 这里的Layout不一定不能写死，要根据是否登录进行判断  */}
+  <Route path="/" element={
+    <AuthComponent>
+      <Layout />
+    </AuthComponent>
+  }></Route>
+  {/* 不需要鉴权 */}
+  <Route path="/login" element={<Login />}></Route>
+</Routes>
+```
+
+#### Layout模块设计
+- 使用 antd 搭建基础布局
+- 1. 打开 antd/Layout 布局组件文档，找到示例：顶部-侧边布局-通栏
+  - 使用 antd 的 Layout, Menu, Popconfirm 组件
+- 2. 拷贝示例代码到我们的 Layout 页面中
+- 3. 分析并调整页面布局
+
+#### 二级路由配置
+- 1. 在pages目录中，分别创建：Home(数据概览)、Article(内容管理)、Publish(发布文章) 页面文件夹
+- 2. 分别在三个文件夹中创建 index.js 并创建基础组件后导出
+- 3. 在 app.js 中配置嵌套子路由，在layout.js中配置二级路由出口
+- 4. 使用 Link 修改左侧菜单内容，与子路由规则匹配实现路由切换
+
+- 加二级路由之后，记得在页面处加出口设置(Outlet)  import { Outlet } from 'react-router-dom'
+```javascript
+// ./src/App.js
+<Routes>
+  {/* 创建路由path和组件对应关系 */}
+  {/* Layout 需要鉴权处理 */}
+  {/* 这里的Layout不一定不能写死，要根据是否登录进行判断  */}
+  <Route path="/" element={
+    <AuthComponent>
+      <Layout />
+    </AuthComponent>
+  }>
+    {/* 二级路由 */}
+    <Route index element={<Home />}></Route>  {/* 默认组件 */}
+    <Route path="article" element={<Article />} ></Route>
+    <Route path="publish" element={<Publish />} ></Route>
+  </Route>
+
+  {/* 不需要鉴权 */}
+  <Route path="/login" element={<Login />}></Route>
+
+</Routes>
+```
+
+```javascript
+// .src/pages/Layout/index.js
+<Layout className="layout-content" style={{ padding: 20 }}>
+  {/* 二级路由出口 */}
+  <Outlet />
+</Layout>
+```
+
+#### 路由跳转配置
+- 使用 Link 来跳转
+
+#### 菜单反向高亮
+- 配置 Menu 中的 defaultSelectedKeys
+- const { pathname } = useLocation() 获取路由参数信息，包括 hash,key,pathname,search,state
+
+#### 获取用户数据
+- 在 .src/store/ 下新建 user.Store.js 文件，并写获取用户数据的类，然后导出，在 store/index.js 文件中统一导出
+```javascript
+import { makeAutoObservable } from 'mobx'
+import { http } from '@/utils'
+
+class UserStore {
+  userInfo = {}
+  constructor() {
+    makeAutoObservable(this)
+  }
+  getUserInfo = () => {
+    // 调用接口获取数据
+
+  }
+}
+export default UserStore
+```
+
+- 每次数据变化之后需要重新连接一下，使用中间件 observer
+  - import { observer } from 'mobx-react-lite'
+
+#### 退出登录实现
+- 使用 Popconfirm 组件
+- 带 user 的 hook 函数，要么在函数组件中使用，要么在另一个hook函数中使用，其他地方不可以
+
+#### token失效，401token实现
+- 为了能在非组件环境中拿到路由信息，需要我们安装一个 history 包
+- 在响应拦截器，超出 2xx 范围的状态码中处理
+  - 对响应错误做点什么
+- 登录后，在 Application 中修改token的值，这时候的token就是一个无效token，然后刷新再查看获取用户信息的接口，返回的就是401错误
+- 主要是对 error.response 中的 status 做判断，等于数字 401 即失效
+
+- 因为这里的处理是在组件之外，所以不能直接使用 useNavigate 
+  - 方法1：使用 window.location.href = '/login'
+  - 方法2：使用 v5 router，需要使用 history 和 react-router-dom 插件
+    - 使用 Unstable_HistoryRouter as HistoryRouter 替换 App.js 中的 BrowserRouter
+
+```javascript
+// step1-方法2中先封装 history
+import { createBrowserHistory } from "history";
+const history = createBrowserHistory()
+export { history }
+```
+- step2-使用 Unstable_HistoryRouter as HistoryRouter 替换 App.js 中的 BrowserRouter
+```javascript
+import { unstable_HistoryRouter as HistoryRouter, BrowserRouter, Routes, Route } from 'react-router-dom'
+...
+function App() {
+  return (
+    <HistoryRouter history={history}>
+    </HistoryRouter>
+  )
+}
+```
+- step3-在 utils/http.js 中引入 history，并使用
+```javascript
+import { history } from './history'
+...
+// 调用
+history.push('/login')
+```
