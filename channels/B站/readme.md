@@ -2294,3 +2294,194 @@ import { history } from './history'
 // 调用
 history.push('/login')
 ```
+#### echarts的基础使用
+思路：
+1. 看官方文档，把 echarts 加入项目
+  1.1 如何在 react 获取dom，useRef
+  1.2 在什么地方获取 dom 节点，useEffect
+2. 不抽离定制化的参数，先把最小化的demo跑起来
+3. 按照需求，哪些参数需要自定义，抽象出来
+
+#### 封装图表组件
+- 新建 component/Bar/index.js 文件
+- 封装通用的功能为组件，然后将可定制的作为参数，从父组件中传入
+
+#### 内容管理，筛选区域搭建
+- Card 面包屑导航
+
+#### 表格区域结构
+- 1. 通过哪个属性指定 Table 组件的列信息
+- 2. 通过哪个属性指定 Table 数据
+- 3. 通过哪个属性指定 Table 列表用到的 key 属性
+
+
+#### 获取文章列表下拉框
+```javascript
+<Form.Item label="频道" name="channel_id">
+  <Select
+    placeholder="请选择文章频道"
+    style={{ width: 120 }}
+  >
+    {channelList.map(channel => <Option key={channel.id} value={channel.id}>{channel.name}</Option>)}
+  </Select>
+</Form.Item>
+
+```
+#### 渲染表格数据
+- 1. 声明列表相关数据管理
+- 2. 声明参数相关数据管理
+- 3. 调用接口获取数据
+- 4. 使用接口数据渲染模板
+
+```javascript
+// 如果异步请求函数需要依赖一些数据变化而重新执行
+// 推荐把它写到内部
+// 统一不抽离函数到外面，只要涉及到异步请求的函数，都放到 useEffect 内部
+// 本质区别：写到外面每次组件更新都会重新进行函数初始化，本身就是一次性能消耗
+// 而写到 useEffect中，只会在依赖项发生变化的时候，函数才会进行重新初始化
+// 避免性能损失
+useEffect(() => {
+    const loadList = async () => {
+      const res = await http.get('/mp/articles', { params })
+      const { results, total_count } = res.data
+      setArticleData({
+        list: results,
+        count: total_count
+      })
+    }
+    loadList()
+  }, [params])
+```
+
+#### 渲染文章列表
+```javascript
+// 文章参数管理
+const [params, setParams] = useState({
+  page: 1,
+  per_page: 10
+})
+/* 表单筛选功能实现 */
+const onFinish = (values) => {
+  const { channel_id, date, status } = values
+  // 数据处理
+  const _params = {}
+  if (status !== -1) {
+    _params.status = status
+  }
+  if (channel_id) {
+    _params.channel_id = channel_id
+  }
+  if (date) {
+    _params.begin_pubdate = date[0].format('YYYY-MM-DD')
+    _params.end_pubdate = date[1].format('YYYY-MM-DD')
+  }
+  // 修改params数据，引起接口的重新发送 对于原来默认的，会将params原来的参数page和per_page整体覆盖
+  // 通过解构就可以保持原来的值
+  setParams({
+    ...params,
+    ..._params
+  })
+}
+```
+#### 分页器功能
+#### 文章删除
+#### 遍历跳转
+```javascript
+
+// 删除文章
+const delArticle = async (data) => {
+  await http.delete(`/mp/articles/${data.id}`)
+  // 刷新一下列表
+  setParams({
+    ...params,
+    page: 1
+  })
+}
+
+// 编辑文章
+const navigate = useNavigate()
+const goPublish = (data) => {
+  navigate(`/publish?id=${data.id}`)
+}
+
+const columns = [
+  {
+    title: '封面',
+    dataIndex: 'cover',
+    width: 120,
+    render: cover => {
+      return <img src={cover.images[0] || img404} width={80} height={60} alt="" />
+    }
+  },
+  {
+    title: '标题',
+    dataIndex: 'title',
+    width: 220
+  },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    // render: data => formatStatus(data)
+  },
+  {
+    title: '发布时间',
+    dataIndex: 'pubdate'
+  },
+  {
+    title: '阅读数',
+    dataIndex: 'read_count'
+  },
+  {
+    title: '评论数',
+    dataIndex: 'comment_count'
+  },
+  {
+    title: '点赞数',
+    dataIndex: 'like_count'
+  },
+  {
+    title: '操作',
+    render: data => {
+      return (
+        <Space size="middle">
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<EditOutlined />}
+            onClick={() => goPublish(data)} />
+          />
+          <Button
+            type="primary"
+            danger
+            shape="circle"
+            icon={<DeleteOutlined />}
+            onClick={() => delArticle(data)}
+          />
+        </Space>
+      )
+    },
+    fixed: 'right'
+  }
+]
+
+<Card title={`根据筛选条件共查询到 ${articleData.count} 条结果：`}>
+<Table
+  rowKey="id"
+  columns={columns}
+  dataSource={articleData.list}
+  pagination={
+    {
+      pageSize: params.per_page,
+      total: articleData.count,
+      onChange: pageChange,
+      current: params.page
+    }
+  }
+  bordered
+/>
+</Card>
+
+```
+#### 发布文章
+- 1. 使用Card, Form 组件搭建基本页面结构
+- 2. 创建样式文件，对样式做出调整
