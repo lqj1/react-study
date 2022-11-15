@@ -15,16 +15,19 @@ const { RangePicker } = DatePicker
 
 const Article = () => {
   // 频道列表管理
-  const [channelList, setChannelList] = useState([])
-  const loadChannelList = async () => {
-    const res = await http.get('/channels')
-    setChannelList(res.data.channels)
-  }
+  // const [channelList, setChannelList] = useState([])
+  const { channelStore } = useStore()
+  
   // useEffect的依赖非常必要，非常容易出现循环执行
   // 在里面写了引起组件重新渲染的逻辑，重新渲染又会导致 useEffect 执行
-  useEffect(() => {
-    loadChannelList()
-  }, [])
+  // 封装到 channel.Store.js 中并在 Layout/index.js 中调用
+  // useEffect(() => {
+  //   const loadChannelList = async () => {
+  //     const res = await http.get('/channels')
+  //     setChannelList(res.data.channels)
+  //   }
+  //   loadChannelList()
+  // }, [])
   // 文章列表管理，统一管理数据，将来修改给 setList 传对象
   const [articleData, setArticleData] = useState({
     list: [],  // 文章列表
@@ -199,7 +202,7 @@ const Article = () => {
               placeholder="请选择文章频道"
               style={{ width: 120 }}
             >
-              {channelList.map(channel => <Option key={channel.id} value={channel.id}>{channel.name}</Option>)}
+              {channelStore.channelList.map(channel => <Option key={channel.id} value={channel.id}>{channel.name}</Option>)}
             </Select>
           </Form.Item>
 

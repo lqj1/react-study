@@ -15,11 +15,12 @@ const { Header, Sider } = Layout
 
 const GeekLayout = () => {
   const { pathname } = useLocation()
-  const { userStore, loginStore } = useStore()
+  const { userStore, loginStore, channelStore } = useStore()
   // 调用请求用户数据
   useEffect(() => {
     userStore.getUserInfo()
-  }, [userStore])
+    channelStore.loadChannelList()
+  }, [userStore, channelStore])
   // 确定退出
   const navigate = useNavigate()
   const onConfirm = () => {
