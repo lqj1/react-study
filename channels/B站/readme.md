@@ -2485,3 +2485,290 @@ const columns = [
 #### 发布文章
 - 1. 使用Card, Form 组件搭建基本页面结构
 - 2. 创建样式文件，对样式做出调整
+
+- 将频道列表下拉单独提取到 store 中，并作为通用组件在各个页面中调用
+```javascript
+// .src/store/channel.Store.js
+import { http } from '@/utils'
+import { makeAutoObservable } from 'mobx'
+
+class ChannelStore {
+  channelList = []
+  constructor() {
+    makeAutoObservable(this)
+  }
+  // article 和 publish 组件都需要使用到，应该将其提取到公共的 
+  loadChannelList = async () => {
+    const res = await http.get('/channels')
+    this.channelList = res.data.channels 
+  }
+}
+
+export default ChannelStore
+```
+
+```javascript
+// .src/pages/Publish/index.js
+const Publish = () => {
+  const { channelStore } = useStore()
+  return (
+    <Form.Item
+      label="频道"
+      name="channel_id"
+      rules={[{ required: true, message: '请选择文章频道' }]}
+    >
+      <Select placeholder="请选择文章频道" style={{ width: 400 }}>
+        {channelStore.channelList.map(item => (
+          <Option key={item.id} value={item.id}>{item.name}</Option>
+        ))}
+      </Select>
+    </Form.Item>
+  )
+}
+```
+
+#### 上传封面实现
+- 1. 为 Upload 组件添加 action 属性，指定封面图片上传接口地址
+- 2. 创建状态 fileList 存储已上传封面图片地址，并设置为 Upload 组件的 fileList 属性值
+- 3. 为 Upload 添加 onChange 属性，监听封面图片上传，删除等操作
+- 4. 在 change 事件中拿到当前图片数据，并存储到状态 fileList 中
+
+#### 控制封面数量
+- 1. 创建状态 maxCount
+- 2. 给 Radio 添加 onChange 监听单图、三图、无图的切换条件
+- 3. 在切换事件中修改 maxCount 值
+- 4. 只在 maxCount 不为零时展示 Upload 组件
+- 5. 修改 Upload 组件的 maxCount(最大数量)，multiple(支持多图选择)属性
+
+#### 控制最大上传数量
+- 1. 修改 Upload 组件的 maxCount(最大数量) 属性控制最大上传数量
+- 2. 控制 multiple(支持多图选择)属性 控制是否支持选择多张图片
+
+- imgCount 大于0的时候显示上传组件
+- imgCount 大于1的时候允许多选，多选的数量取决于 imgCount
+```javascript
+// ./src/pages/Publish/index.js
+{imgCount > 0 && (
+  <Upload
+    name="image"
+    listType="picture-card"
+    className="avatar-uploader"
+    showUploadList
+    action="http://geek.itheima.net/v1_0/upload"
+    fileList={fileList}
+    onChange={onUploadChange}
+    multiple={imgCount > 1}
+    maxCount={imgCount}
+  >
+    <div style={{ marginTop: 8 }}>
+      <PlusOutlined />
+    </div>
+  </Upload>
+)}
+```
+
+#### 发布文章
+- 1. 给 Form 表单添加 onFinish 用来获取表单提交数据
+- 2. 在事件处理程序中，拿到表单数据按照接口需要格式化数据
+- 3. 调用接口实现文章发布，其中的接口数据格式为
+```javascript
+{
+  channel_id: 1
+  content: '<p> 测试 <p/>'
+  cover: {
+    type: 1, 
+    images: ['http://test.com']
+  },
+  type: 1
+  title: '测试文章'
+}
+```
+
+#### 暂存图片列表实现
+- 问题描述
+  - 如果当前为三图模式，已经完成了上传，选择单图只显示一张，再切换到三图继续显示三张，该如何实现
+- 实现思路
+  - 在上传完毕之后通过ref存储所有图片，需要几张就显示，其实也就是把 ref 当做仓库，用多少拿多少
+- 实现步骤
+  - 1. 通过 useRef 创建一个暂存仓库，在上传完毕图片的时候把图片列表存入
+  - 2. 如果是单图模式，就从仓库里取第一张图，以数组的形式存入 fileList
+  - 3. 如果是三图模式，就把仓库里所有的图片，以数组的形式存入 fileList
+
+
+#### 编辑文章-文案适配
+- 1. 通过路由参数拿到文章 id
+- 2. 根据文章 id 是否存在判断是否为编辑状态
+- 3. 如果是编辑状态，展示编辑时的文案信息
+
+#### 回显基础数据
+```javascript
+// ./src/pages/Publish/index.js
+// 数据回填  id调用接口  1.表单回填 2.暂存列表 3.Upload组件fileList
+const [form] = Form.useForm()
+useEffect(() => {
+  const loadDetail = async () => {
+    const res = await http.get(`/mp/articles/${id}`)
+    const data = res.data
+    // 表单数据回填
+    form.setFieldsValue({ ...data, type: data.cover.type })
+    // 回填upload
+    const formatImgList = data.cover.images.map(url => ({ url }))
+    setFileList(formatImgList)
+    // 暂存列表里也存一份
+    cacheImgList.current = formatImgList
+    // 图片type
+    setImageCount(data.cover.type)
+  }
+  // 必须是编辑状态 才可以发送请求
+  if (id) {
+    loadDetail()
+  }
+}, [id, form])
+```
+
+#### 打包和预览
+- 1. 在项目根目录下打开终端，输入打包命令：yarn build
+- 2. 等待打包完成，打包生成的内容被放在根下的 build 文件夹中
+
+#### 项目本地预览
+- 1. 全局安装本地服务包 npm i -g serve，该包提供了 serve 命令，用来启动本地服务
+- 2. 在项目根目录中执行命令 serve -s ./build 在 build 目录中开启服务器
+- 3. 在浏览器中访问：http://localhost:5000/ 预览项目
+
+#### 打包体积分析
+- 1. 安装分析打包体积的包：yarn add source-map-explorer
+- 2. 在 package.json 中的 scripts 标签中，添加分析打包体积的命令
+- 3. 对项目打包：yarn build (如果已经打过包，可省略这一步)
+- 4. 运行分析命令：yarn analyze
+- 5. 通过浏览器打开的页面，分析图表中的包体积
+
+#### CDN配置
+- 通过 craco 来修改 webpack 配置，从而实现 CDN 优化
+  - craco 是不破坏webpack配置基础上做优化 
+- 编辑 craco.config.js
+```javascript
+// craco.config.js
+const path = require('path')
+const { whenProd, getPlugin, pluginByName } = require('@craco/craco')
+module.exports = {
+  // webpack 配置
+  webpack: {
+    // 配置CDN
+    configure: (webpackConfig) => {
+      // webpackConfig 自动注入的 webpack 配置对象
+      // 可以在这个函数中对它进行详细的自定义配置
+      // 只要最后 return 出去就行
+      let cdn = {
+        js: [],
+        css: []
+      }
+      // 只在生产环境才配置
+      whenProd( ()=> {
+        webpackConfig.externals = {
+          // 这里就是将 react 和 react-dom 这两个包提取出去，然后通过 cdn 引入
+          // key: 需要不参与打包的具体的包
+          // value: cdn文件中，挂载于全局的变量名称，为了替换之前在开发环境下
+          react: 'React',
+          'react-dom': 'ReactDOM'
+        }
+        cdn = {
+          js: [
+            // 这里的内容会渲染到下面 script 中
+            'https://cdn.boot.../react.production.min.js',
+            'https://cdn.boot.../react.production.min.js',
+          ],
+          css: []
+        }
+      })
+      const { isFound, match } = getPlugin(
+        webpackConfig,
+        pluginByName('HtmlWebpackPlugin')
+      )
+      if( isFound ) {
+        // 找到了 HtmlWebpackPlugin 的插件
+        match.userOptions.cdn = cdn
+      }
+      return webpackConfig
+    }
+  }
+}
+```
+- 加载第三方 CDN 连接
+```javascript
+// public/index.html
+<body>
+  <div id="root">
+  </div>
+  {/* 找到上面配置文件中 cdn 中的内容，遍历并注入到这里，渲染到script */}
+  <% htmlWebpackPlugin.options.cdn.js.forEach(cdnURL => { %>
+    <script src="<%= cdnURL %>"></script>
+  <% }) %>
+</body>
+```
+
+#### 路由懒加载
+- 1. 在 App 组价中，导入 Suspense 组件
+- 2. 在路由 Router 内部，使用 Suspense 组件包裹组件内容
+- 3. 为 Suspense 组件提供 fallback 属性，指定 loading 占位内容
+- 4. 导入 lazy 函数，并修改为懒加载方式导入路由组件
+
+- Suspense 就是路由懒加载的时候
+
+- 在 App.js 中编辑
+```javascript
+// App.js
+import { unstable_HistoryRouter as HistoryRouter, Routes, Route } from 'react-router-dom'
+import { history } from './utils'
+
+import './App.css'
+import { AuthComponent } from '@/components/AuthComponent'
+import { lazy, Suspense } from 'react'
+
+// 按需导入组件
+const Login = lazy(() => import('./pages/Login'))
+const Layout = lazy(() => import('./pages/Layout'))
+const Home = lazy(() => import('./pages/Home'))
+const Article = lazy(() => import('./pages/Article'))
+const Publish = lazy(() => import('./pages/Publish'))
+
+function App () {
+  return (
+    // 路由配置
+    <HistoryRouter history={history}>
+      <div className="App">
+        <Suspense
+          fallback={
+            <div
+              style={{
+                textAlign: 'center',
+                marginTop: 200
+              }}
+            >
+              loading...
+            </div>
+          }
+        >
+          <Routes>
+            {/* 创建路由path和组件对应关系 */}
+            {/* Layout需要鉴权处理的 */}
+            {/* 这里的Layout不一定不能写死 要根据是否登录进行判断 */}
+            <Route path='/' element={
+              <AuthComponent>
+                <Layout />
+              </AuthComponent>
+            }>
+              <Route index element={<Home />}></Route>
+              <Route path='article' element={<Article />}></Route>
+              <Route path='publish' element={<Publish />}></Route>
+            </Route>
+            {/* 这个不需要 */}
+            <Route path='/login' element={<Login />}></Route>
+          </Routes>
+        </Suspense>
+      </div>
+    </HistoryRouter>
+  )
+}
+
+export default App
+```
